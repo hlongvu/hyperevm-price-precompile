@@ -10,3 +10,10 @@ Index: 4
 
 
 precompile testnet: 0x0000000000000000000000000000000000000800
+
+cast call 0x0000000000000000000000000000000000000807 0x0000000000000000000000000000000000000000000000000000000000000004 --rpc-url $TESTNET_RPC_URL
+
+# toggle big block at https://hyperevm-block-toggle.vercel.app/
+
+forge build
+forge script script/DeployPriceOracleReader.s.sol:PriceOracleReaderScript --rpc-url $TESTNET_RPC_URL --account fcb8 --broadcast --gas-limit 25000000

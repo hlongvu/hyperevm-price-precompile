@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script} from "forge-std/Script.sol";
-import {Counter} from "../src/Counter.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {PriceOracleReader} from "../src/PriceOracleReader.sol";
 
-contract CounterScript is Script {
-    Counter public counter;
+contract PriceOracleReaderScript is Script {
+    PriceOracleReader public priceOracleReader;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        counter = new Counter();
+        priceOracleReader = new PriceOracleReader();
+        
+        console.log("PriceOracleReader deployed at:", address(priceOracleReader));
 
         vm.stopBroadcast();
     }
