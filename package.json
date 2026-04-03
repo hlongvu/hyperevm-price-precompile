@@ -1,0 +1,17 @@
+{
+  "name": "hyperevm-price",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test:price": "ts-node test/readPrice.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0"
+  }
+}
