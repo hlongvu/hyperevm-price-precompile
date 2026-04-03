@@ -1,66 +1,138 @@
-## Foundry
+# HyperEVM Oracle Price Reader
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Demonstrates how to read oracle prices from HyperEVM precompile using **RPC calls** or **smart contract calls**.
 
-Foundry consists of:
+## Prerequisites
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- [Foundry](https://book.getfoundry.sh/) installed
+- Node.js and npm/yarn (for TypeScript RPC method)
+- Environment variables configured (copy `.env.example` to `.env`)
 
-## Documentation
+## Setup
 
-https://book.getfoundry.sh/
+```bash
+# Install dependencies
+npm install
 
-## Usage
-
-### Build
-
-```shell
-$ forge build
+# Build contracts
+forge build
 ```
 
-### Test
+## Methods
 
-```shell
-$ forge test
+### Method 1: Direct RPC Call (No Contract Deployment)
+
+Read oracle prices directly via RPC calls to the precompile address `0x0000000000000000000000000000000000000807`. No contract deployment required.
+
+**TypeScript Example:**
+
+```bash
+# Query ETH price on testnet
+ts-node test/readPrice.ts ETH testnet
+
+# Query BTC price
+ts-node test/readPrice.ts BTC testnet
 ```
 
-### Format
+**Direct RPC Call:**
 
-```shell
-$ forge fmt
+```typescript
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const oraclePrecompile = '0x0000000000000000000000000000000000000807';
+const tokenIndex = 0; // ETH
+
+// Encode token index as 32-byte hex
+const data = ethers.zeroPadValue(ethers.toBeHex(tokenIndex), 32);
+
+// Call precompile directly
+const result = await provider.call({ to: oraclePrecompile, data });
+const rawPrice = ethers.getBigInt(result);
 ```
 
-### Gas Snapshots
+### Method 2: Smart Contract Call
 
-```shell
-$ forge snapshot
+Deploy `PriceOracleReader` contract and call it to read and store oracle prices.
+
+**Deploy Contract:**
+
+```bash
+forge script script/DeployPriceOracleReader.s.sol:PriceOracleReaderScript \
+  --rpc-url $TESTNET_RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast
 ```
 
-### Anvil
+**Call Contract (via cast):**
 
-```shell
-$ anvil
+```bash
+# Get stored price for token index 0 (ETH)
+cast call <CONTRACT_ADDRESS> "getLatestPrice(uint32)" 0 --rpc-url $TESTNET_RPC_URL
+
+# Update and store new price for token index 0
+cast send <CONTRACT_ADDRESS> "updatePrice(uint32)" 0 --rpc-url $TESTNET_RPC_URL --private-key $PRIVATE_KEY
 ```
 
-### Deploy
+**Call Contract (Solidity):**
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```solidity
+PriceOracleReader reader = PriceOracleReader(CONTRACT_ADDRESS);
+
+// Update price (requires transaction)
+uint256 price = reader.updatePrice(0); // ETH index
+
+// Read stored price (view call)
+uint256 storedPrice = reader.getLatestPrice(0);
 ```
 
-### Cast
+## Precompile Addresses
 
-```shell
-$ cast <subcommand>
+| Precompile | Address | Description |
+|------------|---------|-------------|
+| Oracle Px | `0x...0807` | Oracle price |
+| Mark Px | `0x...0806` | Mark price |
+| Spot Px | `0x...0808` | Spot price |
+| Perp Asset Info | `0x...080a` | Perp asset metadata |
+
+See `src/L1Read.sol` for all available precompiles.
+
+## Price Conversion
+
+Raw prices from precompile use specific decimals:
+
+```
+formattedPrice = rawPrice / 10^(6 - szDecimals)
 ```
 
-### Help
+Example: ETH has `szDecimals = 5`, so:
+- Raw price: `350000` (6 decimals)
+- Formatted: `$35000.0`
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+## Project Structure
+
 ```
+src/
+├── L1Read.sol           # Base contract with all precompile calls
+├── PriceOracleReader.sol # Example contract using oraclePx()
+test/
+├── readPrice.ts         # TypeScript RPC reader
+script/
+├── DeployPriceOracleReader.s.sol  # Deployment script
+```
+
+## Environment Variables
+
+Create `.env` file:
+
+```bash
+TESTNET_RPC_URL=https://testnet-rpc-url
+MAINNET_RPC_URL=https://mainnet-rpc-url
+TESTNET_API_URL=https://testnet-api-url
+MAINNET_API_URL=https://mainnet-api-url
+PRIVATE_KEY=your-private-key
+```
+
+## License
+
+MIT
